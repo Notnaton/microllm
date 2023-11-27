@@ -79,9 +79,7 @@ class gguf_file(BaseModel):
 def read_string(file) -> gguf_string_t:
     read_str = gguf_string_t
     read_str.len = int.from_bytes(file.read(8), byteorder='little')
-    print(read_str.len)
     read_str.string = file.read(read_str.len).decode('utf-8')
-    print(read_str.string)
     return read_str
 
 def read_metadata_value_t(file, value_type) -> gguf_metadata_value_t:
@@ -99,39 +97,34 @@ def read_metadata_value_t(file, value_type) -> gguf_metadata_value_t:
         case gguf_metadata_value_type.INT16:
             buffer.append(struct.unpack('<h', file.read(2))[0])
         case gguf_metadata_value_type.UINT16:
-            print("UINT16")
             buffer.append(struct.unpack('<H', file.read(2))[0])
         case gguf_metadata_value_type.INT32:
-            print("INT32")
             buffer.append(struct.unpack('<i', file.read(4))[0])
         case gguf_metadata_value_type.UINT32:
-            print("UINT32")
             buffer.append(struct.unpack('<I', file.read(4))[0])
         case gguf_metadata_value_type.FLOAT32:
             buffer.append(struct.unpack('<f', file.read(4))[0])
         case gguf_metadata_value_type.INT64:
-            print("INT64")
             buffer.append(struct.unpack('<q', file.read(8))[0])
         case gguf_metadata_value_type.UINT64:
-            print("UINT64")
             buffer.append(struct.unpack('<Q', file.read(8))[0])
         case gguf_metadata_value_type.FLOAT64:
-            print("FLOAT64")
             buffer.append(struct.unpack('<d', file.read(8))[0])
         case gguf_metadata_value_type.STRING:
             buffer.append(read_string(file).string)
         case gguf_metadata_value_type.ARRAY:
-            pass
+            array_type = int.from_bytes(file.read(4), byteorder='little')
+            array_length = int.from_bytes(file.read(8), byteorder='little')
+            buffer = [read_metadata_value_t(file, array_type).data for _ in range(array_length)]
     gmvt.data = buffer
     return gmvt
 
-def read_metadata_kv(file):
+def read_metadata_kv(file) -> gguf_metadata_kv_t:
     metadata = gguf_metadata_kv_t
     metadata.key =          read_string(file).string
-    print(metadata.key)
     metadata.value_type =   int.from_bytes(file.read(4), byteorder='little')
-    print(metadata.value_type)
     metadata.value = read_metadata_value_t(file, metadata.value_type).data
+    return metadata
 
 def read_header(file) -> gguf_header_t:
     gguf_header = gguf_header_t
@@ -141,7 +134,6 @@ def read_header(file) -> gguf_header_t:
     gguf_header.metadata_kv_count = int.from_bytes(file.read(8), byteorder='little')
     buffer=[]
     for _ in range(gguf_header.metadata_kv_count):
-        print("read_metadata_kv")
         buffer.append(read_metadata_kv(file))
     gguf_header.metadata_kv = buffer
 
@@ -150,8 +142,6 @@ def read_header(file) -> gguf_header_t:
 def read_gguf(file) -> gguf_file:
     g_file = gguf_file
     with open(file, mode="rb") as f:
-        print(f.read(200))
-        f.seek(0)
         g_file.header = read_header(f)
         #read_tensor_infos(f)
     return g_file
@@ -159,4 +149,4 @@ def read_gguf(file) -> gguf_file:
 if __name__ == "__main__":
     #gguf_data = read_gguf("E:\LLM\models\TheBloke\zephyr-7B-beta-GGUF\zephyr-7b-beta.Q4_K_S.gguf")
     gguf_data = read_gguf("E:\LLM\models\TheBloke\Mistral-7B-Instruct-v0.1-GGUF\mistral-7b-instruct-v0.1.Q4_0.gguf")
-    print(gguf_data.header.metadata_kv)
+    #print(gguf_data.header.metadata_kv)
