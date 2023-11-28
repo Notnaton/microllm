@@ -67,6 +67,7 @@ class gguf_header_t(BaseModel):
 class gguf_tensor_info_t(BaseModel):
     name: gguf_string_t
     n_dimensions: int
+    dimensions: List[n_dimensions]
     type: ggml_type 
     offset: int
 
@@ -122,7 +123,7 @@ def read_metadata_value_t(file, value_type) -> gguf_metadata_value_t:
 def read_metadata_kv(file) -> gguf_metadata_kv_t:
     metadata = gguf_metadata_kv_t
     metadata.key =          read_string(file).string
-    metadata.value_type =   int.from_bytes(file.read(4), byteorder='little')
+    metadata.value_type =   gguf_metadata_value_type(int.from_bytes(file.read(4), byteorder='little'))
     metadata.value = read_metadata_value_t(file, metadata.value_type).data
     return metadata
 
@@ -139,11 +140,21 @@ def read_header(file) -> gguf_header_t:
 
     return gguf_header
 
+def read_tensor_infos(file) -> gguf_tensor_info_t:
+    t_info = gguf_tensor_info_t()
+    t_info.name = read_string(file).string
+    t_info.n_dimensions = int.from_bytes(file.read(4), byteorder='little')
+    t_info.type: ggml_type 
+    t_info.offset: int
+
+
 def read_gguf(file) -> gguf_file:
     g_file = gguf_file
     with open(file, mode="rb") as f:
         g_file.header = read_header(f)
-        #read_tensor_infos(f)
+        #g_file.tensor_infos = read_tensor_infos(f)
+        #g_file.padding = 
+        #g_file.tensor_data =
     return g_file
 
 if __name__ == "__main__":
