@@ -67,7 +67,7 @@ class gguf_header_t(BaseModel):
 class gguf_tensor_info_t(BaseModel):
     name: gguf_string_t
     n_dimensions: int
-    dimensions: List[n_dimensions]
+    dimensions: List[int]
     type: ggml_type 
     offset: int
 
@@ -141,18 +141,22 @@ def read_header(file) -> gguf_header_t:
     return gguf_header
 
 def read_tensor_infos(file) -> gguf_tensor_info_t:
-    t_info = gguf_tensor_info_t()
+    t_info = gguf_tensor_info_t
     t_info.name = read_string(file).string
     t_info.n_dimensions = int.from_bytes(file.read(4), byteorder='little')
-    t_info.type: ggml_type 
-    t_info.offset: int
+    t_info.dimensions = [int.from_bytes(file.read(8), byteorder='little') for _ in range(t_info.n_dimensions)]
+    t_info.type = ggml_type(int.from_bytes(file.read(4), byteorder='little'))
+    t_info.offset = int.from_bytes(file.read(8), byteorder='little')
+    return t_info
 
+def align_offset(offset, ALIGNMENT) -> int:
+    return offset + (ALIGNMENT - (offset % ALIGNMENT)) % ALIGNMENT
 
 def read_gguf(file) -> gguf_file:
     g_file = gguf_file
     with open(file, mode="rb") as f:
         g_file.header = read_header(f)
-        #g_file.tensor_infos = read_tensor_infos(f)
+        g_file.tensor_infos = [read_tensor_infos(f) for _ in range(g_file.header.tensor_count)]
         #g_file.padding = 
         #g_file.tensor_data =
     return g_file
@@ -160,4 +164,4 @@ def read_gguf(file) -> gguf_file:
 if __name__ == "__main__":
     #gguf_data = read_gguf("E:\LLM\models\TheBloke\zephyr-7B-beta-GGUF\zephyr-7b-beta.Q4_K_S.gguf")
     gguf_data = read_gguf("E:\LLM\models\TheBloke\Mistral-7B-Instruct-v0.1-GGUF\mistral-7b-instruct-v0.1.Q4_0.gguf")
-    #print(gguf_data.header.metadata_kv)
+    print(gguf_data.tensor_infos)
