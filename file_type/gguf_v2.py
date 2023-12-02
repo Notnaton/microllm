@@ -156,7 +156,20 @@ def read_gguf(file) -> gguf_file:
     g_file = gguf_file
     with open(file, mode="rb") as f:
         g_file.header = read_header(f)
-        g_file.tensor_infos = [read_tensor_infos(f) for _ in range(g_file.header.tensor_count)]
+        tensor_infos = (read_tensor_infos(f) for _ in range(g_file.header.tensor_count))
+        combined_list = []
+        for tensor_info in tensor_infos:
+            # Create a list for each tensor containing its details
+            tensor_details = [
+                tensor_info.name,
+                tensor_info.n_dimensions,
+                tensor_info.dimensions,
+                tensor_info.type,
+                tensor_info.offset
+            ]
+            # Add this list to the combined list
+            combined_list.append(tensor_details)
+        g_file.tensor_infos = combined_list
         #g_file.padding = 
         #g_file.tensor_data =
     return g_file
