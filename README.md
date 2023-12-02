@@ -4,8 +4,8 @@
 
  currently working:
  - gguf.py
+    Now it reads the entire gguf file and returns the file locations for the tensor data.
 
 todo:
-- gguf_v2.py buggy
 - load tensors into model
 - inference
