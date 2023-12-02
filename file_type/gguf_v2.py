@@ -1,7 +1,10 @@
+import os
 import struct
 from enum import IntEnum
 from pydantic import BaseModel
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Dict
+
+ALIGNMENT = 32
 
 class ggml_type(IntEnum):
     GGML_TYPE_F32  = 0
@@ -75,7 +78,7 @@ class gguf_file(BaseModel):
     header: gguf_header_t
     tensor_infos: List[gguf_tensor_info_t]
     padding: List[bytes]
-    tensor_data: List[int]
+    tensor_data: List[Dict]
 
 def read_string(file) -> gguf_string_t:
     read_str = gguf_string_t
@@ -153,10 +156,13 @@ def read_tensor_infos(file) -> gguf_tensor_info_t:
 def align_offset(offset, ALIGNMENT) -> int:
     return offset + (ALIGNMENT - (offset % ALIGNMENT)) % ALIGNMENT
 
-def read_gguf(file) -> gguf_file:
+def read_gguf(file) -> (gguf_file, str):
     g_file = gguf_file
     with open(file, mode="rb") as f:
+        #read header og the file
         g_file.header = read_header(f)
+
+        #read tensor metadata
         tensor_infos = (read_tensor_infos(f) for _ in range(g_file.header.tensor_count))
         combined_list = []
         for tensor_info in tensor_infos:
@@ -171,12 +177,34 @@ def read_gguf(file) -> gguf_file:
             # Add this list to the combined list
             combined_list.append(tensor_details)
         g_file.tensor_infos = combined_list
-        #g_file.padding = 
-        #g_file.tensor_data =
-    return g_file
+
+        #get padding 
+        g_file.padding = align_offset(f.tell(), ALIGNMENT)
+
+        #Load tensors from offset
+        offsets = []
+        for info in g_file.tensor_infos:
+            offsets.append(info[-1] + g_file.padding)
+        
+        tensor_locations = []
+        f.seek(0, os.SEEK_END)
+        eof = f.tell()
+        for i, offset in enumerate(offsets):
+            # For the last offset, the end is the end of the file (eof)
+            # For others, it's the next offset in the list
+            end = eof if i == len(offsets) - 1 else offsets[i + 1]
+            tensor_locations.append({"start": offset, "end": end})
+
+        #We should give the file and the offsets to allow people to load the tensors
+        g_file.tensor_data = tensor_locations   
+    return (g_file, file)
 
 if __name__ == "__main__":
     #gguf_data = read_gguf("E:\LLM\models\TheBloke\zephyr-7B-beta-GGUF\zephyr-7b-beta.Q4_K_S.gguf")
-    gguf_data = read_gguf("E:\LLM\models\TheBloke\Mistral-7B-Instruct-v0.1-GGUF\mistral-7b-instruct-v0.1.Q4_0.gguf")
-    for meta in gguf_data.header.metadata_kv:
-        print(meta[0])
+    gguf_data, file = read_gguf("E:\LLM\models\TheBloke\Mistral-7B-Instruct-v0.1-GGUF\mistral-7b-instruct-v0.1.Q4_0.gguf")
+    for meta in gguf_data.tensor_infos:
+        print(meta)
+
+    for tensor in gguf_data.tensor_data:
+        print(tensor)
+    
