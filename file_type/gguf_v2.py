@@ -135,7 +135,8 @@ def read_header(file) -> gguf_header_t:
     gguf_header.metadata_kv_count = int.from_bytes(file.read(8), byteorder='little')
     buffer=[]
     for _ in range(gguf_header.metadata_kv_count):
-        buffer.append(read_metadata_kv(file))
+        meta = read_metadata_kv(file)
+        buffer.append([meta.key, meta.value])
     gguf_header.metadata_kv = buffer
 
     return gguf_header
@@ -177,4 +178,5 @@ def read_gguf(file) -> gguf_file:
 if __name__ == "__main__":
     #gguf_data = read_gguf("E:\LLM\models\TheBloke\zephyr-7B-beta-GGUF\zephyr-7b-beta.Q4_K_S.gguf")
     gguf_data = read_gguf("E:\LLM\models\TheBloke\Mistral-7B-Instruct-v0.1-GGUF\mistral-7b-instruct-v0.1.Q4_0.gguf")
-    print(gguf_data.tensor_infos)
+    for meta in gguf_data.header.metadata_kv:
+        print(meta[0])

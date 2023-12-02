@@ -1,3 +1,4 @@
 pip install git
 pip install numpy
+pip install pydantic
 pip install git+https://github.com/tinygrad/tinygrad.git
