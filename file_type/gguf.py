@@ -53,7 +53,7 @@ class gguf_string_t(BaseModel):
 class gguf_metadata_value_t(BaseModel):
     type: gguf_metadata_value_type
     len: int
-    data: Union[List[type], type]
+    data: Union[List[gguf_metadata_value_type], gguf_metadata_value_type]
 
 class gguf_metadata_kv_t(BaseModel):
     key: gguf_string_t
