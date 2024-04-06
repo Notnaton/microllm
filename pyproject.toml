@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "microllm"
+version = "0.0.0"
+description = "Inference using tinygrad and guff files"
+authors = ["Anton Solbjørg <4324290+Notnaton@users.noreply.github.com>"]
+license = "GNU AFFERO GENERAL PUBLIC LICENSE"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pydantic = "^2.6.4"
+numpy = "^1.26.4"
+tinygrad = {git = "https://github.com/tinygrad/tinygrad.git"}
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

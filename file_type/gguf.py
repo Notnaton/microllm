@@ -156,7 +156,7 @@ def read_tensor_infos(file) -> gguf_tensor_info_t:
 def align_offset(offset, ALIGNMENT) -> int:
     return offset + (ALIGNMENT - (offset % ALIGNMENT)) % ALIGNMENT
 
-def read_gguf(file) -> (gguf_file, str):
+def read_gguf(file) -> tuple[gguf_file, str]:
     g_file = gguf_file
     with open(file, mode="rb") as f:
         #read header og the file
@@ -197,7 +197,7 @@ def read_gguf(file) -> (gguf_file, str):
 
         #We should give the file and the offsets to allow people to load the tensors
         g_file.tensor_data = tensor_locations   
-    return (g_file, file)
+    return tuple[g_file, file]
 
 if __name__ == "__main__":
     #gguf_data = read_gguf("E:\LLM\models\TheBloke\zephyr-7B-beta-GGUF\zephyr-7b-beta.Q4_K_S.gguf")
