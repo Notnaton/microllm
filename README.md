@@ -3,8 +3,8 @@
  just the bare basics to run inference on local hardware.
 
  currently working:
- - gguf.py
-    Now it reads the entire gguf file and returns the file locations for the tensor data.
+ - read_gguf.py
+    Refactor not very good, it is faster and more compact but too verbose. 
 
 todo:
 - load tensors into model
