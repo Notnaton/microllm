@@ -1,0 +1,5 @@
+{
+    "CodeGPT.apiKey": "Groq",
+    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.autoImportCompletions": true
+}

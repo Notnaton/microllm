@@ -1,12 +1,12 @@
 import os
 import struct
-from enum import IntEnum
+from enum import IntEnum, Enum
 from pydantic import BaseModel
 from typing import List, Optional, Union, Dict
 
 ALIGNMENT = 32
 
-class ggml_type(IntEnum):
+class ggml_type(Enum):
     GGML_TYPE_F32  = 0
     GGML_TYPE_F16  = 1
     GGML_TYPE_Q4_0 = 2
@@ -27,7 +27,7 @@ class ggml_type(IntEnum):
     GGML_TYPE_COUNT = 19
 
 
-class gguf_metadata_value_type(IntEnum):
+class gguf_metadata_value_type(Enum):
     UINT8 = 0
     INT8 = 1
     UINT16 = 2
@@ -81,10 +81,12 @@ class gguf_file(BaseModel):
     tensor_data: List[Dict]
 
 def read_string(file) -> gguf_string_t:
-    read_str = gguf_string_t
-    read_str.len = int.from_bytes(file.read(8), byteorder='little')
-    read_str.string = file.read(read_str.len).decode('utf-8')
-    return read_str
+    string_length = int.from_bytes(file.read(8), byteorder='little')
+    string_data = file.read(string_length).decode('utf-8')
+    return gguf_string_t(
+        len = string_length,
+        string = string_data
+    )
 
 def read_metadata_value_t(file, value_type) -> gguf_metadata_value_t:
     gmvt = gguf_metadata_value_t
@@ -93,7 +95,7 @@ def read_metadata_value_t(file, value_type) -> gguf_metadata_value_t:
     buffer = []
     match gmvt.type:
         case gguf_metadata_value_type.INT8:
-            buffer.append(struct.unpack('b', file.read(1))[0])
+            gmvt.data.append(struct.unpack('b', file.read(1))[0])
         case gguf_metadata_value_type.UINT8:
             buffer.append(struct.unpack('B', file.read(1))[0])
         case gguf_metadata_value_type.BOOL:
@@ -124,11 +126,11 @@ def read_metadata_value_t(file, value_type) -> gguf_metadata_value_t:
     return gmvt
 
 def read_metadata_kv(file) -> gguf_metadata_kv_t:
-    metadata = gguf_metadata_kv_t
-    metadata.key =          read_string(file).string
-    metadata.value_type =   gguf_metadata_value_type(int.from_bytes(file.read(4), byteorder='little'))
-    metadata.value = read_metadata_value_t(file, metadata.value_type).data
-    return metadata
+    return gguf_metadata_kv_t(
+        key = read_string(file),
+        value_type =   gguf_metadata_value_type(int.from_bytes(file.read(4), byteorder='little')),
+        value = read_metadata_value_t(file, value_type).data
+    )
 
 def read_header(file) -> gguf_header_t:
     gguf_header = gguf_header_t

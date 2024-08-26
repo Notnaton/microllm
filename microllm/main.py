@@ -1,6 +1,7 @@
 import numpy as np
 from typing import List
 from .file_type import gguf
+from . import model
 
 #from devtools import pprint, debug
 
@@ -10,7 +11,6 @@ def main():
 
     for field in data.header.model_fields:
         print(field)
-
 
 
     print(data.header)
