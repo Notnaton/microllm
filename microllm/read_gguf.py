@@ -132,7 +132,7 @@ class gguf_file:
     def __init__(self, file):
         self.header: gguf_header = gguf_header(file)
         self.tensor_info_t = [gguf_tensor_info_t(file) for _ in range(self.header.tensor_count)]
-        self.padding = file.read(align_offset(file.tell()) - file.tell()); assert self.padding == b'\x00' * len(self.padding)
+        self.padding = file.read(align_offset(file.tell()) - file.tell()); assert self.padding == b'\x00' * len(self.padding) #TODO: get alignment from header
         self.tensor_data: bytes
 
 if __name__ == '__main__':
