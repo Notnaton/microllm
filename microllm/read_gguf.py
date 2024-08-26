@@ -7,8 +7,6 @@ from dataclasses import dataclass
 import struct
 from enum import IntEnum
 
-from microllm.file_type import gguf
-
 ALIGNMENT = 32  # Assuming alignment is 32 if not specified
 
 def align_offset(position, alignment=ALIGNMENT):
