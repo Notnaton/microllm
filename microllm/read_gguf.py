@@ -138,4 +138,5 @@ class gguf_file:
 if __name__ == '__main__':
     with open('/home/anton/.cache/lm-studio/models/lmstudio-community/Phi-3.5-mini-instruct-GGUF/Phi-3.5-mini-instruct-Q8_0.gguf', 'rb') as file:
         gguf = gguf_file(file)
-        print(gguf.tensor_info_t[0].offset)
+        for metadata in gguf.header.metadata_kv:
+            print(f'{str(metadata.key, "utf-8")}: {str(metadata.value.value)}')
