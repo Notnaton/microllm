@@ -2,7 +2,7 @@
 Read a file *.gguf and return file locations for the objects
 """
 
-from typing import List, Union
+from typing import List, Union, Any
 from dataclasses import dataclass
 import struct
 from enum import IntEnum
@@ -63,7 +63,7 @@ class GGUFMetadataArray:
 	def __init__(self, file):
 		self.value_type: GGUFMetadataValueType = GGUFMetadataValueType(struct.unpack('<I', file.read(4))[0]); assert self.value_type in GGUFMetadataValueType
 		self.len: int = struct.unpack('<Q', file.read(8))[0]
-		self.array: List['gguf_metadata_value_t'] = [gguf_metadata_value_t(file, self.value_type) for _ in range(self.len)]
+		self.array: List[Any] = [read_value(file, self.value_type) for _ in range(self.len)]
 
 @dataclass
 class gguf_string_t:
@@ -71,43 +71,42 @@ class gguf_string_t:
 		self.len: int = struct.unpack('<Q', file.read(8))[0]
 		self.string: str = struct.unpack(f'{self.len}s', file.read(self.len))[0]
 
-@dataclass
-class gguf_metadata_value_t:
-	def __init__(self, file, type):
-		self.type: GGUFMetadataValueType = type
-		if self.type == GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_UINT8:
-			self.value = struct.unpack('<B', file.read(1))[0]
-		elif self.type == GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_INT8:
-			self.value = struct.unpack('<b', file.read(1))[0]
-		elif self.type == GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_UINT16:
-			self.value = struct.unpack('<H', file.read(2))[0]
-		elif self.type == GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_INT16:
-			self.value = struct.unpack('<h', file.read(2))[0]
-		elif self.type == GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_UINT32:
-			self.value = struct.unpack('<I', file.read(4))[0]
-		elif self.type == GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_INT32:
-			self.value = struct.unpack('<i', file.read(4))[0]
-		elif self.type == GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_FLOAT32:
-			self.value = struct.unpack('<f', file.read(4))[0]
-		elif self.type == GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_BOOL:
-			self.value = struct.unpack('<?', file.read(1))[0]
-		elif self.type == GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_STRING:
-			self.value = gguf_string_t(file).string
-		elif self.type == GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_ARRAY:
-			self.value = GGUFMetadataArray(file)
-		elif self.type == GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_UINT64:
-			self.value = struct.unpack('<Q', file.read(8))[0]
-		elif self.type == GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_INT64:
-			self.value = struct.unpack('<q', file.read(8))[0]
-		elif self.type == GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_FLOAT64:
-			self.value = struct.unpack('<d', file.read(8))[0]
+def read_value(file, type: GGUFMetadataValueType):
+    match type:
+        case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_UINT8:
+            value = struct.unpack('<B', file.read(1))[0]
+        case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_INT8:
+            value = struct.unpack('<b', file.read(1))[0]
+        case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_UINT16:
+            value = struct.unpack('<H', file.read(2))[0]
+        case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_INT16:
+            value = struct.unpack('<h', file.read(2))[0]
+        case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_UINT32:
+            value = struct.unpack('<I', file.read(4))[0]
+        case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_INT32:
+            value = struct.unpack('<i', file.read(4))[0]
+        case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_FLOAT32:
+            value = struct.unpack('<f', file.read(4))[0]
+        case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_BOOL:
+            value = struct.unpack('<?', file.read(1))[0]
+        case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_STRING:
+            value = gguf_string_t(file).string
+        case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_ARRAY:
+            value = GGUFMetadataArray(file)
+        case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_UINT64:
+            value = struct.unpack('<Q', file.read(8))[0]
+        case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_INT64:
+            value = struct.unpack('<q', file.read(8))[0]
+        case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_FLOAT64:
+            value = struct.unpack('<d', file.read(8))[0]
+    return value
 
 @dataclass
 class gguf_metadata_kv_t:
 	def __init__(self, file):
 		self.key: str = gguf_string_t(file).string
 		self.value_type: GGUFMetadataValueType = GGUFMetadataValueType(struct.unpack('<I', file.read(4))[0]); assert self.value_type in GGUFMetadataValueType
-		self.value: gguf_metadata_value_t = gguf_metadata_value_t(file, self.value_type)
+		self.value = read_value(file, self.value_type)
 
 @dataclass
 class gguf_header:
@@ -139,4 +138,4 @@ if __name__ == '__main__':
 	with open('/home/anton/.cache/lm-studio/models/lmstudio-community/Phi-3.5-mini-instruct-GGUF/Phi-3.5-mini-instruct-Q8_0.gguf', 'rb') as file:
 		gguf = gguf_file(file)
 		for metadata in gguf.header.metadata_kv:
-			print(f'{metadata.key}: {str(metadata.value.value)}')
+			print(f'{metadata.key}: {str(metadata.value)}')

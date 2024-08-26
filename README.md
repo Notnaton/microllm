@@ -4,7 +4,8 @@
 
  currently working:
  - read_gguf.py
-    Refactor not very good, it is faster and more compact but too verbose. 
+
+Refactor made it faster and more compact
 
 todo:
 - load tensors into model
