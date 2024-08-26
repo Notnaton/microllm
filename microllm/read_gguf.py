@@ -139,4 +139,4 @@ if __name__ == '__main__':
     with open('/home/anton/.cache/lm-studio/models/lmstudio-community/Phi-3.5-mini-instruct-GGUF/Phi-3.5-mini-instruct-Q8_0.gguf', 'rb') as file:
         gguf = gguf_file(file)
         for metadata in gguf.header.metadata_kv:
-            print(f'{str(metadata.key, "utf-8")}: {str(metadata.value.value)}')
+            print(f'{metadata.key}: {str(metadata.value.value)}')
