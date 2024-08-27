@@ -70,34 +70,34 @@ def gguf_string_t(file):
 	return str(struct.unpack(f'{len}s', file.read(len))[0], encoding='utf-8')
 
 def read_value(file, type: GGUFMetadataValueType):
-    match type:
-        case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_UINT8:
-            value = struct.unpack('<B', file.read(1))[0]
-        case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_INT8:
-            value = struct.unpack('<b', file.read(1))[0]
-        case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_UINT16:
-            value = struct.unpack('<H', file.read(2))[0]
-        case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_INT16:
-            value = struct.unpack('<h', file.read(2))[0]
-        case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_UINT32:
-            value = struct.unpack('<I', file.read(4))[0]
-        case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_INT32:
-            value = struct.unpack('<i', file.read(4))[0]
-        case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_FLOAT32:
-            value = struct.unpack('<f', file.read(4))[0]
-        case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_BOOL:
-            value = struct.unpack('<?', file.read(1))[0]
-        case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_STRING:
-            value = gguf_string_t(file)
-        case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_ARRAY:
-            value = GGUFMetadataArray(file)
-        case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_UINT64:
-            value = struct.unpack('<Q', file.read(8))[0]
-        case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_INT64:
-            value = struct.unpack('<q', file.read(8))[0]
-        case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_FLOAT64:
-            value = struct.unpack('<d', file.read(8))[0]
-    return value
+	match type:
+		case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_UINT8:
+			value = struct.unpack('<B', file.read(1))[0]
+		case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_INT8:
+			value = struct.unpack('<b', file.read(1))[0]
+		case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_UINT16:
+			value = struct.unpack('<H', file.read(2))[0]
+		case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_INT16:
+			value = struct.unpack('<h', file.read(2))[0]
+		case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_UINT32:
+			value = struct.unpack('<I', file.read(4))[0]
+		case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_INT32:
+			value = struct.unpack('<i', file.read(4))[0]
+		case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_FLOAT32:
+			value = struct.unpack('<f', file.read(4))[0]
+		case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_BOOL:
+			value = struct.unpack('<?', file.read(1))[0]
+		case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_STRING:
+			value = gguf_string_t(file)
+		case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_ARRAY:
+			value = GGUFMetadataArray(file)
+		case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_UINT64:
+			value = struct.unpack('<Q', file.read(8))[0]
+		case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_INT64:
+			value = struct.unpack('<q', file.read(8))[0]
+		case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_FLOAT64:
+			value = struct.unpack('<d', file.read(8))[0]
+	return value
 
 @dataclass
 class gguf_metadata_kv_t:
@@ -130,10 +130,38 @@ class gguf_file:
 		self.header: gguf_header = gguf_header(file)
 		self.tensor_info_t = [gguf_tensor_info_t(file) for _ in range(self.header.tensor_count)]
 		self.padding = file.read(align_offset(file.tell()) - file.tell()); assert self.padding == b'\x00' * len(self.padding) #TODO: get alignment from header
-		self.tensor_data: bytes
+		self.tensor_data = []
+
+	def to_dict(self):
+		return {
+			'header': {
+				'magic': self.header.magic,
+				'version': self.header.version,
+				'tensor_count': self.header.tensor_count,
+				'metadata_kv_count': self.header.metadata_kv_count,
+				'metadata_kv': [
+					{
+						'key': kv.key,
+						'value_type': kv.value_type,
+						'value': kv.value.array if isinstance(kv.value, GGUFMetadataArray) else kv.value
+					} for kv in self.header.metadata_kv
+				]
+			},
+			'tensor_info_t': [
+				{
+					'name': tensor.name,
+					'n_dimensions': tensor.n_dimensions,
+					'dimensions': tensor.dimensions,
+					'type': tensor.type,
+					'offset': tensor.offset
+				} for tensor in self.tensor_info_t
+			],
+			'padding': self.padding,
+			'tensor_data': self.tensor_data
+		}
 
 if __name__ == '__main__':
 	with open('/home/anton/.cache/lm-studio/models/lmstudio-community/Phi-3.5-mini-instruct-GGUF/Phi-3.5-mini-instruct-Q8_0.gguf', 'rb') as file:
-		gguf = gguf_file(file)
-		for metadata in gguf.header.metadata_kv:
-			print(f'{metadata.key}: {str(metadata.value)}')
+		gguf = gguf_file(file).to_dict()
+		print(gguf)
+		
