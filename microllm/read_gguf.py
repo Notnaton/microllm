@@ -65,11 +65,9 @@ class GGUFMetadataArray:
 		self.len: int = struct.unpack('<Q', file.read(8))[0]
 		self.array: List[Any] = [read_value(file, self.value_type) for _ in range(self.len)]
 
-@dataclass
-class gguf_string_t:
-	def __init__(self, file):
-		self.len: int = struct.unpack('<Q', file.read(8))[0]
-		self.string: str = struct.unpack(f'{self.len}s', file.read(self.len))[0]
+def gguf_string_t(file):
+	len: int = struct.unpack('<Q', file.read(8))[0]
+	return str(struct.unpack(f'{len}s', file.read(len))[0], encoding='utf-8')
 
 def read_value(file, type: GGUFMetadataValueType):
     match type:
@@ -90,7 +88,7 @@ def read_value(file, type: GGUFMetadataValueType):
         case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_BOOL:
             value = struct.unpack('<?', file.read(1))[0]
         case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_STRING:
-            value = gguf_string_t(file).string
+            value = gguf_string_t(file)
         case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_ARRAY:
             value = GGUFMetadataArray(file)
         case GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_UINT64:
@@ -104,7 +102,7 @@ def read_value(file, type: GGUFMetadataValueType):
 @dataclass
 class gguf_metadata_kv_t:
 	def __init__(self, file):
-		self.key: str = gguf_string_t(file).string
+		self.key: str = gguf_string_t(file)
 		self.value_type: GGUFMetadataValueType = GGUFMetadataValueType(struct.unpack('<I', file.read(4))[0]); assert self.value_type in GGUFMetadataValueType
 		self.value = read_value(file, self.value_type)
 
@@ -120,7 +118,7 @@ class gguf_header:
 @dataclass
 class gguf_tensor_info_t:
 	def __init__(self, file):
-		self.name: str = gguf_string_t(file).string; assert len(self.name) < 65
+		self.name: str = gguf_string_t(file); assert len(self.name) < 65
 		self.n_dimensions: int = struct.unpack('<I', file.read(4))[0]
 		self.dimensions: List[int] = [struct.unpack('<Q', file.read(8))[0] for _ in range(self.n_dimensions)]
 		self.type: GGMLType = GGMLType(struct.unpack('<I', file.read(4))[0]); assert self.type in GGMLType
