@@ -130,7 +130,7 @@ class gguf_file:
 		self.header: gguf_header = gguf_header(file)
 		self.tensor_info_t = [gguf_tensor_info_t(file) for _ in range(self.header.tensor_count)]
 		self.padding = file.read(align_offset(file.tell()) - file.tell()); assert self.padding == b'\x00' * len(self.padding) #TODO: get alignment from header
-		self.tensor_data = []
+		self.tensor_data_position = []
 
 	def to_dict(self):
 		return {
@@ -157,11 +157,11 @@ class gguf_file:
 				} for tensor in self.tensor_info_t
 			],
 			'padding': self.padding,
-			'tensor_data': self.tensor_data
+			'tensor_data_position': self.tensor_data_position
 		}
 
 if __name__ == '__main__':
 	with open('/home/anton/.cache/lm-studio/models/lmstudio-community/Phi-3.5-mini-instruct-GGUF/Phi-3.5-mini-instruct-Q8_0.gguf', 'rb') as file:
 		gguf = gguf_file(file).to_dict()
-		print(gguf)
+		print(gguf["header"]["metadata_kv"][0])
 		
