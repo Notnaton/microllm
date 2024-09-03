@@ -7,6 +7,5 @@
 
 Refactor made it faster and more compact
 
-todo:
-- load tensors into model
-- inference
+TODO:
+fix token generation to generate sensible tokens...
