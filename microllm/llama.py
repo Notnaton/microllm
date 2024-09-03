@@ -97,7 +97,7 @@ def generate(model, input_ids, max_length=50):
     for _ in range(max_length):
         logits = model(input_ids)
         next_token = logits[:, -1, :].argmax(axis=-1)
-        input_ids = Tensor.cat([input_ids, next_token.unsqueeze(-1)], dim=-1)
+        input_ids = Tensor.cat([input_ids, next_token.unsqueeze(-1)], dim==-1)
     return input_ids
 
 def main():

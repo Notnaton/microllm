@@ -150,35 +150,37 @@ class gguf_file:
 		return dtype_map.get(ggml_type, np.float32)
 
 	def to_dict(self):
-		return {
-			'header': {
-				'magic': self.header.magic,
-				'version': self.header.version,
-				'tensor_count': self.header.tensor_count,
-				'metadata_kv_count': self.header.metadata_kv_count,
-				'metadata_kv': {
-					kv.key: {
-						'value_type': kv.value_type,
-						'value': kv.value.array if isinstance(kv.value, GGUFMetadataArray) else kv.value
-					} for kv in self.header.metadata_kv
-				}
-			},
-			'tensor_info_t': {
-                tensor.name: {
-                    'n_dimensions': tensor.n_dimensions,
-                    'dimensions': tensor.dimensions,
-                    'type': tensor.type,
-                    'offset': tensor.offset
-                } for tensor in self.tensor_info_t
-            },
-            'padding': self.padding,
-            'tensor_data_position': self.tensor_data_position,
-            'tensor_data': self.tensor_data
-        }
+		result = {
+			'magic': self.header.magic,
+			'version': self.header.version,
+			'tensor_count': self.header.tensor_count,
+			'metadata_kv_count': self.header.metadata_kv_count,
+			'padding': self.padding,
+			'tensor_data_position': self.tensor_data_position,
+			'metadata': {},
+			'tensor_info': {},
+			'tensor_data': self.tensor_data
+		}
+
+		# Flatten metadata_kv
+		for kv in self.header.metadata_kv:
+			value = kv.value.array if isinstance(kv.value, GGUFMetadataArray) else kv.value
+			result['metadata'][kv.key] = value
+			result['metadata'][f'{kv.key}_type'] = kv.value_type
+
+		# Flatten tensor_info_t
+		for tensor in self.tensor_info_t:
+			result['tensor_info'][tensor.name] = {
+				'dimensions': tensor.dimensions,
+				'type': tensor.type,
+				'offset': tensor.offset
+			}
+
+		return result
 
 if __name__ == '__main__':
 	with open('/home/anton/.cache/lm-studio/models/lmstudio-community/Phi-3.5-mini-instruct-GGUF/Phi-3.5-mini-instruct-Q8_0.gguf', 'rb') as file:
 		gguf = gguf_file(file).to_dict()
-		for data in gguf["header"]["metadata_kv"]:
-			print(f"{data['key']}: ", data["value"] if data["value_type"] != GGUFMetadataValueType.GGUF_METADATA_VALUE_TYPE_ARRAY else None)
+		for data in gguf:
+			print(f"{data}: {gguf[data]}")	
 
